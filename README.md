@@ -26,21 +26,29 @@ detector predicted, and both come with the mAP that detector obtained over 1,000
 | **mAP@0.50 = 1.000** | **mAP@0.50 = 0.001** |
 | The highest score the metric can award. | Indistinguishable from a detector that found nothing. |
 
-A detector that surrounds every object with four wrong boxes is given a perfect score, and
-a detector whose every box lands on its object is told it failed completely. Looking at
-the two images suggests the opposite ordering; this is an informal judgement, since no
-perceptual study was run. Scenario B is harmless only if it is operated with a confidence
-threshold between 0.40 and 0.85, which removes its four wrong boxes, and mAP neither
-checks nor reports whether such a threshold exists.
+Scenario B obtains mAP@0.50 = 1.000 although four of its five boxes per object are wrong, 
+and scenario A obtains 0.001 although every one of its boxes lands on its object. Looking 
+at the two images suggests the opposite ordering; this is an informal judgement, since no
+perceptual study was run.
 
-**Why scenario B scores 1.000.** Each object receives one accurate box at high
-confidence (IoU around 0.82, confidence in U(0.85, 0.95)) and four displaced boxes at low
-confidence (IoU at most 0.497 by construction, confidence in U(0.10, 0.40)). This pattern has
-a name in the literature, *spatial hedging*; it is defined and cited in experiment 3.
-Average Precision ranks all detections by confidence and integrates precision against
-recall. The four spurious boxes rank below every accurate box, so they only enter the
-curve once recall has already reached 1 and there is no precision left to lose. They
-cost nothing.
+**Why scenario B scores 1.000.** Each object receives one accurate box at high confidence 
+(IoU around 0.82, confidence drawn from U(0.85, 0.95)) and four displaced boxes at low confidence 
+(confidence drawn from U(0.10, 0.40)). The displaced boxes reach an IoU of at most 0.497 by 
+construction, so none of them can ever match the object. Average Precision ranks 
+all detections by confidence and integrates precision against recall. The four displaced
+boxes rank below every accurate box, so they enter the curve only once recall has already 
+reached 1, when there is no precision left to lose. They cost nothing.
+
+**It matters** because such boxes cost nothing, mAP gives a detector no reason not to emit them. 
+As long as extra guesses rank below the correct boxes they are free, and when the main box is 
+uncertain one of them may match and add recall. Jena et al. [3] call this behaviour spatial hedging 
+(see experiment 3) and report that it has led to network designs that gain AP while producing large 
+numbers of false positives. In scenario B the extra boxes can never match, so the scenario shows the
+cost-free half of the problem rather than the gain. Whether such output is harmful also depends 
+on how the detector is used: with a confidence threshold anywhere between 0.40 and 0.85, 
+scenario B returns exactly one accurate box per object, but mAP neither checks nor reports 
+whether such a threshold exists.
+
 
 **Why scenario A scores 0.001.** Every box keeps its object's size and is shifted by 20%
 of its width and height, which puts the IoU at exactly 0.471 for every object regardless
